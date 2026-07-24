@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-900 text-slate-100">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bukka Box — Section 4: Conversation Flow Design Architecture</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <!-- Mermaid.js -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#fff7ed',
+              100: '#ffedd5',
+              500: '#f97316',
+              600: '#ea580c',
+              700: '#c2410c',
+              800: '#9a3412',
+              900: '#7c2d12',
+            },
+            wa: {
+              green: '#25D366',
+              dark: '#075E54',
+              light: '#DCF8C6',
+              chatBg: '#0b141a',
+              msgOut: '#005c4b',
+              msgIn: '#202c33'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+    .mermaid {
+      background: transparent;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .mermaid svg {
+      max-width: 100% !important;
+      height: auto !important;
+    }
+  </style>
+</head>
+<body class="h-full flex flex-col font-sans overflow-hidden">
+
+  <!-- Top Navigation Header -->
+  <header class="bg-slate-950 border-b border-slate-800 px-6 py-3 flex flex-wrap items-center justify-between shrink-0 gap-4">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-amber-500 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-brand-500/20">
+        <i class="fa-solid fa-utensils"></i>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="font-bold text-lg text-white tracking-wide">Bukka Box</h1>
+          <span class="text-xs font-semibold px-2 py-0.5 rounded bg-brand-500/20 text-brand-400 border border-brand-500/30">Section 4 Architecture</span>
+        </div>
+        <p class="text-xs text-slate-400">Conversation Flow Design • Owner: Emmanuel Aderemi (EAS Agency)</p>
+      </div>
+    </div>
+
+    <!-- Tab Selection -->
+    <div class="flex items-center bg-slate-900 p-1 rounded-xl border border-slate-800 text-xs font-medium">
+      <button onclick="switchTab('flowchart')" id="tab-btn-flowchart" class="tab-btn px-4 py-2 rounded-lg text-slate-300 hover:text-white transition flex items-center gap-2 bg-brand-600 text-white font-semibold">
+        <i class="fa-solid fa-diagram-project"></i> Interactive Flowchart
+      </button>
+      <button onclick="switchTab('simulator')" id="tab-btn-simulator" class="tab-btn px-4 py-2 rounded-lg text-slate-400 hover:text-white transition flex items-center gap-2">
+        <i class="fa-brands fa-whatsapp text-wa-green"></i> Chat Simulator
+      </button>
+      <button onclick="switchTab('states')" id="tab-btn-states" class="tab-btn px-4 py-2 rounded-lg text-slate-400 hover:text-white transition flex items-center gap-2">
+        <i class="fa-solid fa-list-check"></i> State Matrix ($S_0$ - $S_{12}$)
+      </button>
+      <button onclick="switchTab('exceptions')" id="tab-btn-exceptions" class="tab-btn px-4 py-2 rounded-lg text-slate-400 hover:text-white transition flex items-center gap-2">
+        <i class="fa-solid fa-code-branch text-amber-400"></i> Exception Branches (4.7)
+      </button>
+      <button onclick="switchTab('rules')" id="tab-btn-rules" class="tab-btn px-4 py-2 rounded-lg text-slate-400 hover:text-white transition flex items-center gap-2">
+        <i class="fa-solid fa-book-bookmark"></i> Rules & Constraints
+      </button>
+    </div>
+
+    <!-- Action Info -->
+    <div class="text-xs text-slate-400 hidden lg:block text-right">
+      <div class="text-slate-200 font-medium">Last Updated: 24 July 2026</div>
+      <div class="text-emerald-400"><i class="fa-solid fa-circle text-[8px] mr-1"></i> Interactive Model Active</div>
+    </div>
+  </header>
+
+  <!-- Main Content Workspace -->
+  <main class="flex-1 overflow-hidden relative flex">
+
+    <!-- VIEW 1: INTERACTIVE FLOWCHART -->
+    <section id="view-flowchart" class="flex-1 flex flex-col md:flex-row overflow-hidden w-full">
+      <!-- Diagram Viewport Area -->
+      <div class="flex-1 flex flex-col bg-slate-950 relative overflow-hidden">
+        <!-- Flowchart Controls Header -->
+        <div class="p-4 border-b border-slate-800/80 bg-slate-900/60 backdrop-blur flex flex-wrap items-center justify-between gap-3 z-10">
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-slate-400 font-medium uppercase tracking-wider">Highlight Path:</span>
+            <div class="flex gap-1.5 bg-slate-950 p-1 rounded-lg border border-slate-800">
+              <button onclick="filterPath('all')" id="filter-all" class="filter-btn text-xs px-3 py-1 rounded-md bg-slate-800 text-white font-medium">All States</button>
+              <button onclick="filterPath('happy-a')" id="filter-happy-a" class="filter-btn text-xs px-3 py-1 rounded-md text-slate-400 hover:text-white">Happy Path A (New)</button>
+              <button onclick="filterPath('happy-b')" id="filter-happy-b" class="filter-btn text-xs px-3 py-1 rounded-md text-slate-400 hover:text-white">Happy Path B (Returning)</button>
+              <button onclick="filterPath('exceptions')" id="filter-exceptions" class="filter-btn text-xs px-3 py-1 rounded-md text-slate-400 hover:text-white">Exceptions Layer</button>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2 text-xs text-slate-400">
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              <i class="fa-solid fa-circle-check text-[10px]"></i> S0 - S12 Standard
+            </span>
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20">
+              <i class="fa-solid fa-triangle-exclamation text-[10px]"></i> 14 Exceptions
+            </span>
+          </div>
+        </div>
+
+        <!-- Render Canvas Container -->
+        <div class="flex-1 overflow-auto p-6 flex justify-center items-start min-h-[500px]" id="diagram-container">
+          <div id="mermaid-target" class="mermaid w-full">
+            %% Dynamic Mermaid Flowchart
+            graph TD
+              classDef stateStyle fill:#1e293b,stroke:#3b82f6,stroke-width:2px,color:#f8fafc,rx:8px,ry:8px;
+              classDef exceptionStyle fill:#2d1a08,stroke:#f59e0b,stroke-width:1.5px,color:#fef3c7,stroke-dasharray: 4 4,rx:6px,ry:6px;
+              classDef startStyle fill:#064e3b,stroke:#10b981,stroke-width:2px,color:#ecfdf5,rx:20px,ry:20px;
+              classDef endStyle fill:#4c1d95,stroke:#8b5cf6,stroke-width:2px,color:#f5f3ff,rx:20px,ry:20px;
+
+              Inbound([Inbound Customer Message]):::startStyle --> S0[S0: Entry & Identification]:::stateStyle
+              
+              %% Identification Split
+              S0 -->|Unknown Customer| S1a[S1a: Welcome New Customer]:::stateStyle
+              S0 -->|Known Customer| S1b[S1b: Welcome Back Returning]:::stateStyle
+
+              %% Path A (New)
+              S1a -->|Tap Menu / Intent| S2[S2: Box Selection - 6 Combos]:::stateStyle
+              S2 -->|Select Box| S3[S3: Add-ons & Drinks]:::stateStyle
+              S3 -->|Proceed / Skip| S4[S4: Cart Review & Edit]:::stateStyle
+              S4 -->|Checkout| S5[S5: Address Capture & Zone Check]:::stateStyle
+              S5 -->|Valid Zone <=7km| S6[S6: Order Summary & Echo]:::stateStyle
+              
+              %% Path B (Returning Collapsed)
+              S1b -->|Reorder Accepted| S6
+              S1b -->|Start New Order| S2
+
+              %% Order Confirmation & Payment
+              S6 -->|Confirm & Pay| S7[S7: Payment Request & Providus Bank Details]:::stateStyle
+              S7 -->|Send Screenshot| S8[S8: Payment Verification OCR/Ref]:::stateStyle
+              S8 -->|Verified| S9[S9: Kitchen Queue]:::stateStyle
+              S9 -->|Order Ready| S10[S10: Dispatch & Rider Assign]:::stateStyle
+              S10 -->|Rider Dispatched| S11[S11: In Transit Tracking]:::stateStyle
+              S11 -->|Delivery Complete| S12[S12: Post-Delivery & Receipt]:::endStyle
+
+              %% Exception Layer Nodes
+              E_HN[Ex: Human Handoff / Agent]:::exceptionStyle
+              E_VN[Ex: Voice Note Audio Input]:::exceptionStyle
+              E_FAQ[Ex: General FAQ Inquiry]:::exceptionStyle
+              E_HOURS[Ex: Kitchen Closed / Out of Hours]:::exceptionStyle
+              E_OUT[Ex: Out of Zone >7km Decline]:::exceptionStyle
+              E_ABANDON[Ex: Abandoned Cart 10m Recovery]:::exceptionStyle
+              E_PAYFAIL[Ex: Payment Mismatch / Unreadable]:::exceptionStyle
+              E_SOLD[Ex: Item Sold Out]:::exceptionStyle
+
+              %% Exception Attachments
+              S0 -.-> E_HOURS
+              S0 -.-> E_HN
+              S1a -.-> E_FAQ
+              S2 -.-> E_SOLD
+              S5 -.-> E_OUT
+              S4 -.-> E_ABANDON
+              S7 -.-> E_ABANDON
+              S8 -.-> E_PAYFAIL
+              S11 -.-> E_HN
+              
+              click S0 nodeClick "S0 Entry"
+              click S1a nodeClick "S1a Welcome New"
+              click S1b nodeClick "S1b Welcome Back"
+              click S2 nodeClick "S2 Box Selection"
+              click S3 nodeClick "S3 Add-ons"
+              click S4 nodeClick "S4 Cart Review"
+              click S5 nodeClick "S5 Address Capture"
+              click S6 nodeClick "S6 Summary"
+              click S7 nodeClick "S7 Payment Request"
+              click S8 nodeClick "S8 Payment Verification"
+              click S9 nodeClick "S9 Kitchen Queue"
+              click S10 nodeClick "S10 Dispatch"
+              click S11 nodeClick "S11 In Transit"
+              click S12 nodeClick "S12 Post Delivery"
+          </div>
+        </div>
+      </div>
+
+      <!-- State Detail Inspector Sidebar -->
+      <div class="w-full md:w-96 border-t md:border-t-0 md:border-l border-slate-800 bg-slate-900/95 flex flex-col shrink-0 overflow-y-auto">
+        <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/50">
+          <h2 class="font-semibold text-white flex items-center gap-2">
+            <i class="fa-solid fa-circle-info text-brand-500"></i>
+            <span id="inspector-title">State Inspector</span>
+          </h2>
+          <span class="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-400" id="inspector-tag">Select Node</span>
+        </div>
+
+        <div class="p-5 space-y-5 text-xs text-slate-300" id="inspector-content">
+          <div class="bg-slate-950 p-4 rounded-xl border border-slate-800/80">
+            <div class="text-slate-400 font-medium mb-1">Click any state node in the flowchart</div>
+            <p class="text-slate-300 leading-relaxed">
+              Explore purpose, exit conditions, WhatsApp message formats, and exception branch overlays mapped directly from Section 4 of the architecture doc.
+            </p>
+          </div>
+
+          <!-- Quick Overview Card -->
+          <div class="space-y-3">
+            <h3 class="font-bold text-slate-200 uppercase tracking-wider text-[11px] text-slate-400">Core Performance Targets</h3>
+            <div class="grid grid-cols-2 gap-2">
+              <div class="bg-slate-950 p-3 rounded-lg border border-slate-800">
+                <div class="text-brand-400 font-bold text-base">3 Taps</div>
+                <div class="text-slate-400 text-[10px] mt-0.5">To Reorder (Returning)</div>
+              </div>
+              <div class="bg-slate-950 p-3 rounded-lg border border-slate-800">
+                <div class="text-emerald-400 font-bold text-base">&lt; 4 Mins</div>
+                <div class="text-slate-400 text-[10px] mt-0.5">New Order Completion</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- WhatsApp Limits Quick Summary -->
+          <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
+            <h3 class="font-bold text-slate-200 flex items-center gap-2">
+              <i class="fa-brands fa-whatsapp text-wa-green"></i> WhatsApp API Constraint Rules
+            </h3>
+            <ul class="space-y-1.5 text-slate-400 pl-4 list-disc">
+              <li><strong class="text-slate-200">Reply Buttons:</strong> Max 3 per msg (20 chars max)</li>
+              <li><strong class="text-slate-200">List Messages:</strong> Max 10 rows (Title 24 chars, Desc 72 chars)</li>
+              <li><strong class="text-slate-200">24-Hour Window:</strong> Freeform allowed within 24h of last user msg; HSM templates required after.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 2: CHAT SIMULATOR -->
+    <section id="view-simulator" class="flex-1 flex flex-col md:flex-row overflow-hidden w-full hidden">
+      <!-- Chat Selector & Config -->
+      <div class="w-full md:w-80 border-b md:border-b-0 md:border-r border-slate-800 bg-slate-950 p-4 flex flex-col gap-4 shrink-0 overflow-y-auto">
+        <div>
+          <h2 class="font-bold text-white text-base">Conversation Simulator</h2>
+          <p class="text-xs text-slate-400 mt-1">Interactive step-by-step walkthrough of the Bukka Box conversational paths.</p>
+        </div>
+
+        <div class="space-y-2">
+          <label class="text-xs font-semibold text-slate-300">Select Path Persona</label>
+          <div class="space-y-2">
+            <button onclick="loadSimPath('happy_a')" id="sim-btn-happy_a" class="sim-persona-btn w-full text-left p-3 rounded-xl border border-brand-500/50 bg-brand-500/10 text-white transition flex items-start gap-3">
+              <div class="w-8 h-8 rounded-full bg-brand-500 flex items-center justify-center font-bold text-sm shrink-0">A</div>
+              <div>
+                <div class="font-bold text-sm">Aisha (New Customer)</div>
+                <div class="text-xs text-slate-400 mt-0.5">Happy Path A • First order to Ikoyi in &lt; 4 mins</div>
+              </div>
+            </button>
+
+            <button onclick="loadSimPath('happy_b')" id="sim-btn-happy_b" class="sim-persona-btn w-full text-left p-3 rounded-xl border border-slate-800 bg-slate-900 text-slate-300 hover:bg-slate-850 transition flex items-start gap-3">
+              <div class="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center font-bold text-sm shrink-0 text-white">T</div>
+              <div>
+                <div class="font-bold text-sm text-white">Tobi (Returning)</div>
+                <div class="text-xs text-slate-400 mt-0.5">Happy Path B • 3-Tap reorder collapse in &lt; 60s</div>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Simulation Progress Stats -->
+        <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 space-y-3">
+          <div class="flex justify-between text-xs text-slate-400 font-medium">
+            <span>Flow Progress</span>
+            <span id="sim-step-counter">Step 1 / 8</span>
+          </div>
+          <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+            <div id="sim-progress-bar" class="bg-brand-500 h-full w-[12%] transition-all duration-300"></div>
+          </div>
+          <div class="flex items-center justify-between pt-2">
+            <button onclick="prevSimStep()" id="sim-prev-btn" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 font-medium disabled:opacity-40" disabled>
+              <i class="fa-solid fa-chevron-left mr-1"></i> Previous
+            </button>
+            <button onclick="nextSimStep()" id="sim-next-btn" class="px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-xs text-white font-medium">
+              Next Step <i class="fa-solid fa-chevron-right ml-1"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Active Context Box -->
+        <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 text-xs space-y-2">
+          <div class="text-slate-400 font-bold uppercase tracking-wider text-[10px]">State Engine Status</div>
+          <div class="text-brand-400 font-semibold" id="sim-state-title">State S1a: Welcome (New)</div>
+          <p class="text-slate-300" id="sim-state-desc">
+            Customer asks a location question. Bot identifies unknown phone number and replies with welcome, speed promise, and 3 reply buttons.
+          </p>
+        </div>
+      </div>
+
+      <!-- Phone UI Frame -->
+      <div class="flex-1 bg-slate-950 p-4 flex items-center justify-center overflow-auto">
+        <div class="w-full max-w-sm h-[680px] bg-wa-chatBg rounded-[36px] border-[8px] border-slate-800 flex flex-col shadow-2xl relative overflow-hidden">
+          <!-- WhatsApp Top Bar -->
+          <div class="bg-wa-dark px-4 py-3 text-white flex items-center justify-between shrink-0 shadow-md">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-full bg-brand-500 flex items-center justify-center font-bold text-white shadow">
+                BB
+              </div>
+              <div>
+                <div class="font-semibold text-sm flex items-center gap-1">
+                  Bukka Box Official
+                  <i class="fa-solid fa-circle-check text-[10px] text-emerald-400"></i>
+                </div>
+                <div class="text-[10px] text-emerald-100/80">Verified Business Account</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-3 text-emerald-100 text-sm">
+              <i class="fa-solid fa-phone"></i>
+              <i class="fa-solid fa-ellipsis-vertical"></i>
+            </div>
+          </div>
+
+          <!-- Chat Screen Messages Canvas -->
+          <div id="whatsapp-chat-body" class="flex-1 p-3 overflow-y-auto space-y-3 text-xs">
+            <!-- Messages rendered dynamically via JS -->
+          </div>
+
+          <!-- Bottom Footer Input Mockup -->
+          <div class="p-2 bg-slate-900 border-t border-slate-800 flex items-center gap-2 shrink-0">
+            <div class="flex-1 bg-slate-800 rounded-full px-3 py-2 text-slate-400 text-xs flex items-center justify-between">
+              <span>Type message or tap button...</span>
+              <i class="fa-solid fa-paperclip text-slate-400"></i>
+            </div>
+            <div class="w-8 h-8 rounded-full bg-wa-green flex items-center justify-center text-slate-900 font-bold">
+              <i class="fa-solid fa-microphone text-xs"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 3: STATE MATRIX -->
+    <section id="view-states" class="flex-1 overflow-auto p-6 w-full hidden">
+      <div class="max-w-6xl mx-auto space-y-6">
+        <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
+          <div>
+            <h2 class="text-xl font-bold text-white">Section 4.4 — State Definitions ($S_0$ through $S_{12}$)</h2>
+            <p class="text-xs text-slate-400 mt-1">Full state lifecycle mapping, purpose, and exit criteria.</p>
+          </div>
+          <input type="text" id="state-search-input" onkeyup="filterStateTable()" placeholder="Search state name or trigger..." class="bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white w-64 focus:outline-none focus:border-brand-500" />
+        </div>
+
+        <div class="overflow-x-auto rounded-xl border border-slate-800 bg-slate-950">
+          <table class="w-full text-left text-xs text-slate-300" id="states-table">
+            <thead class="bg-slate-900 text-slate-200 uppercase tracking-wider text-[10px] font-bold border-b border-slate-800">
+              <tr>
+                <th class="py-3 px-4">State</th>
+                <th class="py-3 px-4">State Name</th>
+                <th class="py-3 px-4">Purpose in Flow</th>
+                <th class="py-3 px-4">Exit Condition</th>
+                <th class="py-3 px-4">WhatsApp UI Pattern</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800/60">
+              <tr class="hover:bg-slate-900/50">
+                <td class="py-3 px-4 font-mono font-bold text-brand-400">S0</td>
+                <td class="py-3 px-4 font-semibold text-white">Entry</td>
+                <td class="py-3 px-4">Match inbound phone number against customer record database.</td>
+                <td class="py-3 px-4"><span class="px-2 py-0.5 rounded bg-slate-800 text-emerald-400 font-mono">Known</span> or <span class="px-2 py-0.5 rounded bg-slate-800 text-amber-400 font-mono">Unknown</span> determined</td>
+                <td class="py-3 px-4 text-slate-400">System Processing / Webhook</td>
+              </tr>
+              <tr class="hover:bg-slate-900/50">
+                <td class="py-3 px-4 font-mono font-bold text-brand-400">S1a</td>
+                <td class="py-3 px-4 font-semibold text-white">Welcome (New)</td>
+                <td class="py-3 px-4">Greet new customer, answer initial delivery check, offer menu, or human handoff.</td>
+                <td class="py-3 px-4">Customer selects interactive option</td>
+                <td class="py-3 px-4 text-wa-green font-medium">Interactive Reply Buttons (3 max)</td>
+              </tr>
+              <tr class="hover:bg-slate-900/50">
+                <td class="py-3 px-4 font-mono font-bold text-brand-400">S1b</td>
+                <td class="py-3 px-4 font-semibold text-white">Welcome Back (Returning)</td>
+                <td class="py-3 px-4">Offer repeat last order as primary fast-track option for returning profile.</td>
+                <td class="py-3 px-4">Repeat accepted or new order started</td>
+                <td class="py-3 px-4 text-wa-green font-medium">Interactive Reply Buttons</td>
+              </tr>
+              <tr class="hover:bg-slate-900/50">
+                <td class="py-3 px-4 font-mono font-bold text-brand-400">S2</td>
+                <td class="py-3 px-4 font-semibold text-white">Box Selection</td>
+                <td class="py-3 px-4">Present curated six-box combo menu as a single WhatsApp list.</td>
+                <td class="py-3 px-4">Box combo added to cart</td>
+                <td class="py-3 px-4 text-emerald-400 font-medium">WhatsApp List Message (6 rows)</td>
+              </tr>
+              <tr class="hover:bg-slate-900/50">
+                <td class="py-3 px-4 font-mono font-bold text-brand-400">S3</td>
+                <td class="py-3 px-4 font-semibold text-white">Add-ons & Drinks</td>
+                <td class="py-3 px-4">Offer optional extras (proteins, sides, Chapman, Zobo, soft drinks).</td>
+                <td class="py-3 px-4">Customer proceeds to checkout or adds items</td>
+                <td class="py-3 px-4 text-emerald-400 font-medium">WhatsApp List Message (8 rows)</td>
+              </tr>
+              <tr class="hover:bg-slate-900/50">
+                <td class="py-3 px-4 font-mono font-bold text-brand-400">S4</td>
+                <td class="py-3 px-4 font-semibold text-white">Cart Review</td>
+                <td class="py-3 px-4">Show current item list, itemized subtotal, and allow edit or addition.</td>
+                <td class="py-3 px-4">Customer proceeds to checkout</td>
+                <td class="py-3 px-4 text-wa-green font-medium">Text + Reply Buttons</td>
+              </tr>
+              <tr class="hover:bg-slate-900/50">
+                <td class="py-3 px-4 font-mono font-bold text-brand-400">S5</td>
+                <td class="py-3 px-4 font-semibold text-white">Address Capture</td>
+                <td class="py-3 px-4">Collect delivery address text or WhatsApp location pin; run 7km zone check.</td>
+                <td class="py-3 px-4">Address validated and in range (&lt;= 7km)</td>
+                <td class="py-3 px-4 text-slate-300">Free-text / Location Pin Attachment</td>
+              </tr>
+              <tr class="hover:bg-slate-900/50">
+                <td class="py-3 px-4 font-mono font-bold text-brand-400">S6</td>
+                <td class="py-3 px-4 font-semibold text-white">Order Summary</td>
+                <td class="py-3 px-4">Full echo before charge: item list, address, delivery fee, total, ETA.</td>
+                <td class="py-3 px-4">Customer confirms order details</td>
+                <td class="py-3 px-4 text-wa-green font-medium">Text + [Confirm & Pay] [Edit]</td>
+              </tr>
+              <tr class="hover:bg-slate-900/50">
+                <td class="py-3 px-4 font-mono font-bold text-brand-400">S7</td>
+                <td class="py-3 px-4 font-semibold text-white">Payment Request</td>
+                <td class="py-3 px-4">Issue Providus Bank account details plus unique order reference (e.g. BB-4471).</td>
+                <td class="py-3 px-4">Payment screenshot proof received</td>
+                <td class="py-3 px-4 text-slate-300">Text message with Bank Details</td>
+              </tr>
+              <tr class="hover:bg-slate-900/50">
+                <td class="py-3 px-4 font-mono font-bold text-brand-400">S8</td>
+                <td class="py-3 px-4 font-semibold text-white">Payment Verification</td>
+                <td class="py-3 px-4">Match transfer screenshot/reference against order amount and bank statement.</td>
+                <td class="py-3 px-4">Verified or flagged for manual review</td>
+                <td class="py-3 px-4 text-slate-400">OCR / Webhook Verification Processing</td>
+              </tr>
+              <tr class="hover:bg-slate-900/50">
+                <td class="py-3 px-4 font-mono font-bold text-brand-400">S9</td>
+                <td class="py-3 px-4 font-semibold text-white">Kitchen Queue</td>
+                <td class="py-3 px-4">Order written to kitchen display system with timestamp and promised ETA.</td>
+                <td class="py-3 px-4">Kitchen marks meal as ready</td>
+                <td class="py-3 px-4 text-slate-300">Text Confirmation to Customer</td>
+              </tr>
+              <tr class="hover:bg-slate-900/50">
+                <td class="py-3 px-4 font-mono font-bold text-brand-400">S10</td>
+                <td class="py-3 px-4 font-semibold text-white">Dispatch</td>
+                <td class="py-3 px-4">Rider assigned; delivery address & order ref pushed to rider app.</td>
+                <td class="py-3 px-4">Rider accepts dispatch</td>
+                <td class="py-3 px-4 text-amber-400 font-medium">Pre-Approved Template HSM (Out-of-window)</td>
+              </tr>
+              <tr class="hover:bg-slate-900/50">
+                <td class="py-3 px-4 font-mono font-bold text-brand-400">S11</td>
+                <td class="py-3 px-4 font-semibold text-white">In Transit</td>
+                <td class="py-3 px-4">Live status queries answered directly from live dispatch state engine.</td>
+                <td class="py-3 px-4">Rider marks delivery complete</td>
+                <td class="py-3 px-4 text-slate-300">Text / Live Location Link</td>
+              </tr>
+              <tr class="hover:bg-slate-900/50">
+                <td class="py-3 px-4 font-mono font-bold text-brand-400">S12</td>
+                <td class="py-3 px-4 font-semibold text-white">Post-Delivery</td>
+                <td class="py-3 px-4">Receipt PDF issued, customer profile updated, future reorder prompt scheduled.</td>
+                <td class="py-3 px-4">Terminal state reached</td>
+                <td class="py-3 px-4 text-amber-400 font-medium">Pre-Approved Template + PDF Document</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 4: EXCEPTION BRANCHES -->
+    <section id="view-exceptions" class="flex-1 overflow-auto p-6 w-full hidden">
+      <div class="max-w-6xl mx-auto space-y-6">
+        <div class="border-b border-slate-800 pb-4">
+          <h2 class="text-xl font-bold text-white">Section 4.7 — Exception Branches Matrix</h2>
+          <p class="text-xs text-slate-400 mt-1">14 exception routines layered directly on top of the happy paths.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="exception-cards-container">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 5: RULES & CONSTRAINTS -->
+    <section id="view-rules" class="flex-1 overflow-auto p-6 w-full hidden">
+      <div class="max-w-5xl mx-auto space-y-8">
+        <!-- Principles Section -->
+        <div>
+          <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-compass text-brand-500"></i> Section 4.1 — Core Design Principles
+          </h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+              <div class="font-bold text-slate-200 text-sm mb-1">1. Buttons First, Free Text Always</div>
+              <p class="text-xs text-slate-400 leading-relaxed">
+                Structured WhatsApp interactive messages reduce parsing errors and token costs. Voice notes and custom text are always processed without rejection.
+              </p>
+            </div>
+            <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+              <div class="font-bold text-slate-200 text-sm mb-1">2. Three Taps to Reorder</div>
+              <p class="text-xs text-slate-400 leading-relaxed">
+                A returning customer reaches payment in 3 interactions or fewer. Single most critical performance metric.
+              </p>
+            </div>
+            <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+              <div class="font-bold text-slate-200 text-sm mb-1">3. Echo Before Charge</div>
+              <p class="text-xs text-slate-400 leading-relaxed">
+                Order, items, delivery address, and total price restated in one message before issuing payment details.
+              </p>
+            </div>
+            <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+              <div class="font-bold text-slate-200 text-sm mb-1">4. Clear Next Action Always</div>
+              <p class="text-xs text-slate-400 leading-relaxed">
+                No dead ends. Every message explicitly signals whose turn it is and what action is required.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Menu Reference Table -->
+        <div>
+          <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-book-open text-amber-500"></i> Section 4.3 — Menu & Pricing Reference
+          </h2>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Boxes -->
+            <div class="bg-slate-950 rounded-xl border border-slate-800 p-4 space-y-3">
+              <h3 class="font-bold text-brand-400 text-sm border-b border-slate-800 pb-2">Boxes (Combos)</h3>
+              <ul class="text-xs space-y-2 text-slate-300">
+                <li class="flex justify-between"><span>Jollof + Grilled Chicken</span> <span class="font-mono text-slate-100">₦9,500</span></li>
+                <li class="flex justify-between"><span>Ofada + Assorted</span> <span class="font-mono text-slate-100">₦11,000</span></li>
+                <li class="flex justify-between"><span>Fried Rice + Turkey</span> <span class="font-mono text-slate-100">₦12,500</span></li>
+                <li class="flex justify-between"><span>Suya Wrap Box</span> <span class="font-mono text-slate-100">₦8,000</span></li>
+                <li class="flex justify-between"><span>Yam & Egg Sauce Box</span> <span class="font-mono text-slate-100">₦6,500</span></li>
+                <li class="flex justify-between"><span>Beans & Plantain Box</span> <span class="font-mono text-slate-100">₦7,000</span></li>
+              </ul>
+            </div>
+
+            <!-- Add-ons -->
+            <div class="bg-slate-950 rounded-xl border border-slate-800 p-4 space-y-3">
+              <h3 class="font-bold text-amber-400 text-sm border-b border-slate-800 pb-2">Add-ons</h3>
+              <ul class="text-xs space-y-2 text-slate-300">
+                <li class="flex justify-between"><span>Extra protein</span> <span class="font-mono text-slate-100">₦3,500</span></li>
+                <li class="flex justify-between"><span>Small chops (6 pcs)</span> <span class="font-mono text-slate-100">₦4,000</span></li>
+                <li class="flex justify-between"><span>Moi moi</span> <span class="font-mono text-slate-100">₦2,000</span></li>
+                <li class="flex justify-between"><span>Extra plantain</span> <span class="font-mono text-slate-100">₦1,500</span></li>
+              </ul>
+            </div>
+
+            <!-- Drinks & Delivery -->
+            <div class="bg-slate-950 rounded-xl border border-slate-800 p-4 space-y-3">
+              <h3 class="font-bold text-emerald-400 text-sm border-b border-slate-800 pb-2">Drinks & Delivery Tiers</h3>
+              <ul class="text-xs space-y-2 text-slate-300">
+                <li class="flex justify-between"><span>Chapman</span> <span class="font-mono text-slate-100">₦2,000</span></li>
+                <li class="flex justify-between"><span>Zobo</span> <span class="font-mono text-slate-100">₦1,500</span></li>
+                <li class="flex justify-between"><span>Soft drink</span> <span class="font-mono text-slate-100">₦1,000</span></li>
+                <li class="flex justify-between"><span>Bottled water</span> <span class="font-mono text-slate-100">₦500</span></li>
+                <li class="border-t border-slate-800 pt-2 flex justify-between text-brand-400 font-semibold">
+                  <span>Delivery (&lt;5km)</span> <span>₦1,500</span>
+                </li>
+                <li class="flex justify-between text-brand-400 font-semibold">
+                  <span>Delivery (5km–7km)</span> <span>₦2,500</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Open Design Decisions -->
+        <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-3">
+          <h2 class="text-base font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-clipboard-question text-purple-400"></i> Section 4.8 — Open Design Decisions
+          </h2>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-slate-300">
+            <div class="p-3 bg-slate-900 rounded-lg border border-slate-800">
+              <div class="font-bold text-purple-300 mb-1">1. Payment Verification</div>
+              <p class="text-slate-400">Screenshot + ref match vs complete integration with virtual account gateway.</p>
+            </div>
+            <div class="p-3 bg-slate-900 rounded-lg border border-slate-800">
+              <div class="font-bold text-purple-300 mb-1">2. Kitchen & Rider Interface</div>
+              <p class="text-slate-400">Currently out of scope; bottlenecks shift to physical kitchen standard ops.</p>
+            </div>
+            <div class="p-3 bg-slate-900 rounded-lg border border-slate-800">
+              <div class="font-bold text-purple-300 mb-1">3. Pidgin & Yoruba Phrasing</div>
+              <p class="text-slate-400">NLU intent expansion for Lagos colloquialisms ("How far", "Ekaabo").</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- JavaScript Application Logic -->
+  <script>
+    // State Inspections Data
+    const stateData = {
+      "S0 Entry": {
+        name: "S0: Entry Identification",
+        purpose: "Match incoming WhatsApp phone number against customer record database.",
+        exit: "Known (returning) or Unknown (new customer) status determined.",
+        pattern: "System Webhook Trigger",
+        persona: "System Level",
+        payload: "Inbound Payload: { from: '+2348030000000', body: 'Hi' }"
+      },
+      "S1a Welcome New": {
+        name: "S1a: Welcome (New)",
+        purpose: "Greet first-time customer, state value proposition, answer immediate location questions.",
+        exit: "Customer taps one of the 3 interactive reply buttons.",
+        pattern: "Interactive Reply Buttons (Max 3 buttons, 20 chars each)",
+        persona: "Aisha",
+        payload: "Buttons: [View menu], [Check my area], [Talk to someone]"
+      },
+      "S1b Welcome Back": {
+        name: "S1b: Welcome Back (Returning)",
+        purpose: "Collapse steps S1-S6 for returning customer. Offer repeat order as primary tap option.",
+        exit: "Repeat accepted or new customized order started.",
+        pattern: "Interactive Reply Buttons",
+        persona: "Tobi",
+        payload: "Buttons: [Jollof + Chicken, ₦11,000], [Something else], [Talk to someone]"
+      },
+      "S2 Box Selection": {
+        name: "S2: Box Combo Selection",
+        purpose: "Present six standardized combo meal boxes to prevent paging & choices fatigue.",
+        exit: "Customer picks 1 box combo.",
+        pattern: "WhatsApp Interactive List Message (6 rows total)",
+        persona: "Aisha / Tobi",
+        payload: "List items: Jollof+Chicken (₦9,500), Ofada (₦11k), Fried Rice (₦12.5k), Suya Wrap (₦8k), Yam&Egg (₦6.5k), Beans&Plantain (₦7k)"
+      },
+      "S3 Add-ons": {
+        name: "S3: Add-ons & Drinks",
+        purpose: "Upsell optional side items, drinks, and extra protein.",
+        exit: "Customer taps [Checkout] or adds extras.",
+        pattern: "WhatsApp Interactive List Message (8 rows total)",
+        persona: "Aisha",
+        payload: "Items: Chapman (₦2k), Zobo (₦1.5k), Soft Drink (₦1k), Extra Protein (₦3.5k), Small Chops (₦4k)..."
+      },
+      "S4 Cart Review": {
+        name: "S4: Cart Review & Edit",
+        purpose: "Show current itemized list and subtotal before collecting delivery address.",
+        exit: "Customer proceeds to checkout.",
+        pattern: "Text summary + Reply Buttons ([Checkout], [Add more], [Start over])",
+        persona: "Aisha",
+        payload: "Cart: 1x Jollof+Chicken (₦9,500), 1x Chapman (₦2,000). Subtotal: ₦11,500."
+      },
+      "S5 Address Capture": {
+        name: "S5: Address Capture & Zone Check",
+        purpose: "Collect delivery address string or location pin; run 7km radius validation.",
+        exit: "Address validated and distance <=7km.",
+        pattern: "Free text input or WhatsApp Location Pin Attachment",
+        persona: "Aisha",
+        payload: "Zone Check Engine: Distance 5.2km calculated. Delivery fee set to ₦2,500."
+      },
+      "S6 Summary": {
+        name: "S6: Order Summary (Echo Before Charge)",
+        purpose: "Echo complete order breakdown, full address, fee, total price, and ETA prior to asking for money.",
+        exit: "Customer confirms order.",
+        pattern: "Text summary + [Confirm and pay] [Edit order]",
+        persona: "Aisha / Tobi",
+        payload: "Order BB-4471: Total ₦14,000. Estimated arrival 13:20."
+      },
+      "S7 Payment Request": {
+        name: "S7: Payment Request",
+        purpose: "Issue Providus Bank account transfer details with unique order reference.",
+        exit: "Customer uploads screenshot of transfer proof.",
+        pattern: "Text message with account details & order reference",
+        persona: "Aisha / Tobi",
+        payload: "Bank: Providus Bank | Account: 0123456789 | Ref: BB-4471"
+      },
+      "S8 Payment Verification": {
+        name: "S8: Payment Verification Engine",
+        purpose: "Verify transfer proof screenshot / reference matching against order amount.",
+        exit: "Payment verified or flagged for manual agent check.",
+        pattern: "Background Service / OCR Webhook",
+        persona: "System",
+        payload: "Verification Status: MATCH_CONFIRMED"
+      },
+      "S9 Kitchen Queue": {
+        name: "S9: Kitchen Display System Queue",
+        purpose: "Push order payload to kitchen preparation station with timestamp and promised delivery time.",
+        exit: "Kitchen marks order prepared.",
+        pattern: "KDS Queue Integration",
+        persona: "Kitchen Staff",
+        payload: "KDS Ticket: BB-4471 • Promised ETA: 13:20"
+      },
+      "S10 Dispatch": {
+        name: "S10: Rider Dispatch",
+        purpose: "Assign delivery rider (e.g. Musa) and push delivery reference.",
+        exit: "Rider accepts assignment.",
+        pattern: "Pre-Approved Template HSM (Out-of-24h window format)",
+        persona: "Rider Musa",
+        payload: "Template ID: rider_dispatched_v1"
+      },
+      "S11 In Transit": {
+        name: "S11: In Transit Tracking",
+        purpose: "Answer status queries dynamically from live rider GPS dispatch engine.",
+        exit: "Rider confirms package delivered.",
+        pattern: "Dynamic text responses or rider map link",
+        persona: "Aisha / Musa",
+        payload: "Dispatch State: EN_ROUTE • ETA: 13:20"
+      },
+      "S12 Post Delivery": {
+        name: "S12: Post-Delivery & Receipt",
+        purpose: "Issue official PDF receipt, update user profile metrics, schedule automated reorder prompt.",
+        exit: "Terminal step.",
+        pattern: "Template HSM + PDF Document Attachment",
+        persona: "Aisha",
+        payload: "Receipt PDF attached. Buttons: [Order again], [Rate this order]"
+      }
+    };
+
+    // Exception Data
+    const exceptionsData = [
+      { name: "Voice Note Input", attach: "Any state", trigger: "Inbound audio message", persona: "Nkechi", desc: "Transcribe audio via Whisper API and confirm parsed order intent before proceeding." },
+      { name: "Mid-Order Amendment", attach: "S3 to S6", trigger: "'actually', 'change', 'remove'", persona: "Nkechi", desc: "Interrupt current sequence to modify items without losing saved address context." },
+      { name: "Bulk Quantity (>3)", attach: "S2", trigger: "Quantity > 3 boxes", persona: "Chidi", desc: "Apply bulk pricing tier or route to corporate order coordinator." },
+      { name: "Scheduled Future Slot", attach: "S5", trigger: "'tomorrow', 'for 2pm'", persona: "Chidi", desc: "Lock future delivery slot and adjust kitchen queue delay." },
+      { name: "Out-of-Zone Decline", attach: "S5", trigger: "Distance > 7km", persona: "Aisha", desc: "Politely decline delivery, offer dine-in location details and takeaway reservation." },
+      { name: "FAQ Interception", attach: "Any state", trigger: "Question without order intent", persona: "Aisha", desc: "Answer question (e.g. dietary info) and return seamlessly to current step." },
+      { name: "Separate Recipient", attach: "S5", trigger: "'for my mother', new phone #", persona: "Femi", desc: "Capture separate recipient name & phone number for delivery rider contact." },
+      { name: "Payment Mismatch", attach: "S8", trigger: "Amount or reference discrepancy", persona: "All", desc: "Flag transaction proof for manual human review and ask customer for clean reference." },
+      { name: "Item Sold Out", attach: "S2, S9", trigger: "Kitchen marks item unavailable", persona: "All", desc: "Prompt customer with fast one-tap swap recommendations." },
+      { name: "Abandoned Cart", attach: "S4 to S7", trigger: "10 minutes inactivity", persona: "All", desc: "Send gentle reminder prompt with saved cart shortcut button." },
+      { name: "Status Chase", attach: "S11", trigger: "'how far', 'where is my food'", persona: "All", desc: "Query live rider GPS and return exact distance & refreshed ETA." },
+      { name: "Kitchen Closed", attach: "S0", trigger: "Time of day outside hours", persona: "All", desc: "Notify opening hours and offer scheduled pre-order for next morning." },
+      { name: "Human Handoff", attach: "Any state", trigger: "Keyword 'agent' or 3 failed parses", persona: "All", desc: "Route full chat history and active cart payload to live agent dashboard." },
+      { name: "Formatted Invoice", attach: "S12", trigger: "Bulk order or tax receipt request", persona: "Chidi", desc: "Generate VAT-compliant invoice PDF with company details." }
+    ];
+
+    // Simulation Conversations
+    const simPaths = {
+      happy_a: {
+        title: "Happy Path A — Aisha (New Customer)",
+        steps: [
+          {
+            state: "State S1a: Welcome (New)",
+            desc: "Aisha asks about delivery to Ikoyi. Bot verifies location, welcomes her, and presents 3 reply buttons.",
+            chat: [
+              { sender: "user", text: "Hi, do you deliver to Ikoyi?" },
+              { sender: "bot", text: "Hi, welcome to Bukka Box! 👋 Yes, we deliver to Ikoyi. Nigerian comfort food, cooked fresh, at your door in about 35 minutes.", buttons: ["View menu", "Check my area", "Talk to someone"] }
+            ]
+          },
+          {
+            state: "State S2: Box Combo Selection",
+            desc: "Aisha taps 'View menu'. Bot presents the single list message containing all 6 box combos.",
+            chat: [
+              { sender: "user", text: "Tapped: View menu" },
+              { sender: "bot", text: "Here is today's menu. Every box comes complete, no assembly required.", listTitle: "Bukka Box Menu", listItems: ["Jollof + Grilled Chicken - ₦9,500", "Ofada + Assorted - ₦11,000", "Fried Rice + Turkey - ₦12,500", "Suya Wrap Box - ₦8,000", "Yam & Egg Sauce Box - ₦6,500", "Beans & Plantain Box - ₦7,000"] }
+            ]
+          },
+          {
+            state: "State S3: Add-ons & Drinks",
+            desc: "Aisha selects Jollof + Grilled Chicken. Bot acknowledges and offers sides/drinks.",
+            chat: [
+              { sender: "user", text: "Selected: Jollof + Grilled Chicken" },
+              { sender: "bot", text: "Jollof + Grilled Chicken added. ₦9,500.", buttons: ["Add drinks or sides", "Add another box", "Checkout"] }
+            ]
+          },
+          {
+            state: "State S4: Cart Review",
+            desc: "Aisha selects Chapman drink. Bot calculates cart subtotal and asks to proceed.",
+            chat: [
+              { sender: "user", text: "Selected: Chapman (₦2,000)" },
+              { sender: "bot", text: "Your order so far:\n1x Jollof + Grilled Chicken - ₦9,500\n1x Chapman - ₦2,000\n\nSubtotal: ₦11,500", buttons: ["Checkout", "Add more", "Start over"] }
+            ]
+          },
+          {
+            state: "State S5: Address Capture",
+            desc: "Aisha taps Checkout and shares location pin. Bot measures 5.2km distance (₦2,500 delivery).",
+            chat: [
+              { sender: "user", text: "Tapped: Checkout" },
+              { sender: "bot", text: "Where are we delivering? Type your address or tap the paperclip to share your location pin." },
+              { sender: "user", text: "📍 Location Pin Shared (Ikoyi Phase 1)" }
+            ]
+          },
+          {
+            state: "State S6: Order Summary (Echo)",
+            desc: "Bot echoes full itemization, total, and ETA before requesting payment.",
+            chat: [
+              { sender: "bot", text: "Got it! 5.2km from our kitchen in Lekki Phase 1, so delivery is ₦2,500.\n\n*Order BB-4471*\n1x Jollof + Grilled Chicken - ₦9,500\n1x Chapman - ₦2,000\nDelivery - ₦2,500\n*Total: ₦14,000*\nEstimated arrival: 13:20.", buttons: ["Confirm and pay", "Edit order"] }
+            ]
+          },
+          {
+            state: "State S7 & S8: Payment & Verification",
+            desc: "Aisha confirms and uploads screenshot proof of transfer.",
+            chat: [
+              { sender: "user", text: "Tapped: Confirm and pay" },
+              { sender: "bot", text: "Transfer ₦14,000 to:\n*Bukka Box Ltd*\n0123456789 | Providus Bank\nUse reference: *BB-4471*\n\nSend a screenshot here once done!" },
+              { sender: "user", text: "🖼️ Transfer_Screenshot_BB4471.jpg" },
+              { sender: "bot", text: "Payment confirmed! BB-4471 is with the kitchen now. Arriving around 13:20." }
+            ]
+          },
+          {
+            state: "State S10 & S12: Delivery & Receipt",
+            desc: "Template messages notify dispatch and issue receipt post-delivery.",
+            chat: [
+              { sender: "bot", text: "🚚 *BB-4471 is on the way!* Musa is your rider and will call when he arrives.", isTemplate: true },
+              { sender: "bot", text: "🎉 *Delivered.* Thanks for ordering, Aisha! Your receipt for BB-4471 is attached below.", isTemplate: true, buttons: ["Order again", "Rate this order"] }
+            ]
+          }
+        ]
+      },
+      happy_b: {
+        title: "Happy Path B — Tobi (Returning Customer)",
+        steps: [
+          {
+            state: "State S0 -> S6 Collapsed: Express Reorder",
+            desc: "Tobi types 'jollof chicken same address'. Engine matches phone number, skips S1-S5, and directly displays S6 Order Summary in 1 tap.",
+            chat: [
+              { sender: "user", text: "jollof chicken same address" },
+              { sender: "bot", text: "Welcome back, Tobi! 👋\n\n*Order BB-4478*\n1x Jollof + Grilled Chicken - ₦9,500\nDelivery to 14 Adeola Odeku, VI - ₦1,500\n*Total: ₦11,000*\nArriving around 13:15.", buttons: ["Confirm and pay", "Change something"] }
+            ]
+          },
+          {
+            state: "State S7 & S8: Rapid Payment",
+            desc: "Tobi taps 'Confirm and pay' (Interaction 2) and sends transfer proof (Interaction 3). Total time < 60 seconds.",
+            chat: [
+              { sender: "user", text: "Tapped: Confirm and pay" },
+              { sender: "bot", text: "Transfer ₦11,000 to Bukka Box Ltd., 0123456789, Providus Bank. Reference *BB-4478*. Send screenshot here." },
+              { sender: "user", text: "🖼️ Screenshot_BB4478.jpg" },
+              { sender: "bot", text: "Confirmed! BB-4478 is cooking. See you at 13:15." }
+            ]
+          }
+        ]
+      }
+    };
+
+    let currentSimPathKey = 'happy_a';
+    let currentSimStepIdx = 0;
+
+    // Tab Switching Function
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('bg-brand-600', 'text-white', 'font-semibold');
+        btn.classList.add('text-slate-400');
+      });
+      document.getElementById(`tab-btn-${tabId}`).classList.add('bg-brand-600', 'text-white', 'font-semibold');
+      document.getElementById(`tab-btn-${tabId}`).classList.remove('text-slate-400');
+
+      ['flowchart', 'simulator', 'states', 'exceptions', 'rules'].forEach(view => {
+        const el = document.getElementById(`view-${view}`);
+        if (view === tabId) {
+          el.classList.remove('hidden');
+        } else {
+          el.classList.add('hidden');
+        }
+      });
+    }
+
+    // Node Click Handlers for State Inspector
+    window.nodeClick = function(stateId) {
+      const data = stateData[stateId];
+      if (!data) return;
+
+      document.getElementById('inspector-title').textContent = data.name;
+      document.getElementById('inspector-tag').textContent = stateId;
+
+      const html = `
+        <div class="space-y-4">
+          <div class="bg-slate-950 p-4 rounded-xl border border-brand-500/30">
+            <div class="text-xs text-brand-400 font-bold uppercase tracking-wider mb-1">State Purpose</div>
+            <div class="text-slate-200 text-xs font-medium leading-relaxed">${data.purpose}</div>
+          </div>
+
+          <div class="space-y-2">
+            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Exit Condition</div>
+            <div class="p-3 bg-slate-950 rounded-lg border border-slate-800 text-slate-300">${data.exit}</div>
+          </div>
+
+          <div class="space-y-2">
+            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">WhatsApp Pattern</div>
+            <div class="p-3 bg-slate-950 rounded-lg border border-slate-800 text-wa-green font-semibold">${data.pattern}</div>
+          </div>
+
+          <div class="space-y-2">
+            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Sample Technical Payload</div>
+            <pre class="p-3 bg-slate-950 rounded-lg border border-slate-800 font-mono text-[11px] text-amber-300/90 whitespace-pre-wrap">${data.payload}</pre>
+          </div>
+        </div>
+      `;
+      document.getElementById('inspector-content').innerHTML = html;
+    };
+
+    // Path Filtering
+    function filterPath(pathType) {
+      document.querySelectorAll('.filter-btn').forEach(b => {
+        b.classList.remove('bg-slate-800', 'text-white');
+        b.classList.add('text-slate-400');
+      });
+      document.getElementById(`filter-${pathType}`).classList.add('bg-slate-800', 'text-white');
+      document.getElementById(`filter-${pathType}`).classList.remove('text-slate-400');
+    }
+
+    // Render Exception Branch Cards
+    function renderExceptionCards() {
+      const container = document.getElementById('exception-cards-container');
+      container.innerHTML = exceptionsData.map(ex => `
+        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 hover:border-amber-500/40 transition space-y-2">
+          <div class="flex justify-between items-start">
+            <h3 class="font-bold text-white text-sm">${ex.name}</h3>
+            <span class="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 font-mono">Attaches: ${ex.attach}</span>
+          </div>
+          <div class="text-xs text-slate-400"><strong>Trigger:</strong> ${ex.trigger}</div>
+          <p class="text-xs text-slate-300 leading-relaxed pt-1 border-t border-slate-800/80">${ex.desc}</p>
+          <div class="text-[10px] text-slate-500 font-medium">Persona Reference: ${ex.persona}</div>
+        </div>
+      `).join('');
+    }
+
+    // Table Search Filter
+    function filterStateTable() {
+      const input = document.getElementById('state-search-input').value.toLowerCase();
+      const rows = document.querySelectorAll('#states-table tbody tr');
+      rows.forEach(row => {
+        const text = row.innerText.toLowerCase();
+        row.style.display = text.includes(input) ? '' : 'none';
+      });
+    }
+
+    // Chat Simulator Controller
+    function loadSimPath(pathKey) {
+      currentSimPathKey = pathKey;
+      currentSimStepIdx = 0;
+
+      document.querySelectorAll('.sim-persona-btn').forEach(btn => {
+        btn.classList.remove('border-brand-500/50', 'bg-brand-500/10');
+        btn.classList.add('border-slate-800', 'bg-slate-900');
+      });
+      document.getElementById(`sim-btn-${pathKey}`).classList.add('border-brand-500/50', 'bg-brand-500/10');
+      document.getElementById(`sim-btn-${pathKey}`).classList.remove('border-slate-800', 'bg-slate-900');
+
+      renderSimStep();
+    }
+
+    function renderSimStep() {
+      const path = simPaths[currentSimPathKey];
+      const step = path.steps[currentSimStepIdx];
+
+      document.getElementById('sim-step-counter').textContent = `Step ${currentSimStepIdx + 1} / ${path.steps.length}`;
+      document.getElementById('sim-progress-bar').style.width = `${((currentSimStepIdx + 1) / path.steps.length) * 100}%`;
+      
+      document.getElementById('sim-state-title').textContent = step.state;
+      document.getElementById('sim-state-desc').textContent = step.desc;
+
+      document.getElementById('sim-prev-btn').disabled = currentSimStepIdx === 0;
+      document.getElementById('sim-next-btn').disabled = currentSimStepIdx === path.steps.length - 1;
+
+      // Render Messages
+      const chatBody = document.getElementById('whatsapp-chat-body');
+      chatBody.innerHTML = step.chat.map(msg => {
+        if (msg.sender === 'user') {
+          return `
+            <div class="flex justify-end mb-2">
+              <div class="bg-wa-msgOut text-slate-100 rounded-lg p-2.5 max-w-[80%] shadow text-xs">
+                <div>${msg.text}</div>
+                <div class="text-[9px] text-emerald-200/60 text-right mt-1">13:05 <i class="fa-solid fa-check-double text-sky-300"></i></div>
+              </div>
+            </div>
+          `;
+        } else {
+          let extraContent = '';
+          if (msg.buttons) {
+            extraContent += `
+              <div class="mt-2 pt-2 border-t border-slate-700/50 space-y-1">
+                ${msg.buttons.map(b => `<div class="bg-slate-800/80 text-wa-green text-center py-1.5 rounded font-semibold text-[11px] hover:bg-slate-700">${b}</div>`).join('')}
+              </div>
+            `;
+          }
+          if (msg.listItems) {
+            extraContent += `
+              <div class="mt-2 bg-slate-900/90 rounded border border-slate-700/60 p-2 space-y-1">
+                <div class="font-bold text-amber-400 text-[10px] uppercase">${msg.listTitle}</div>
+                ${msg.listItems.map(item => `<div class="text-[11px] text-slate-200 py-0.5 border-b border-slate-800/60 last:border-0">• ${item}</div>`).join('')}
+              </div>
+            `;
+          }
+
+          return `
+            <div class="flex justify-start mb-2">
+              <div class="bg-wa-msgIn text-slate-100 rounded-lg p-2.5 max-w-[85%] shadow text-xs">
+                ${msg.isTemplate ? `<div class="text-[9px] font-bold text-amber-400 uppercase tracking-wider mb-1"><i class="fa-solid fa-bolt"></i> Pre-approved HSM Template</div>` : ''}
+                <div class="whitespace-pre-line leading-relaxed">${msg.text}</div>
+                ${extraContent}
+                <div class="text-[9px] text-slate-400 text-right mt-1">13:05</div>
+              </div>
+            </div>
+          `;
+        }
+      }).join('');
+
+      chatBody.scrollTop = chatBody.scrollHeight;
+    }
+
+    function prevSimStep() {
+      if (currentSimStepIdx > 0) {
+        currentSimStepIdx--;
+        renderSimStep();
+      }
+    }
+
+    function nextSimStep() {
+      const path = simPaths[currentSimPathKey];
+      if (currentSimStepIdx < path.steps.length - 1) {
+        currentSimStepIdx++;
+        renderSimStep();
+      }
+    }
+
+    // Initialize Page
+    window.addEventListener('DOMContentLoaded', () => {
+      mermaid.initialize({ startOnLoad: true, theme: 'dark' });
+      renderExceptionCards();
+      loadSimPath('happy_a');
+    });
+  </script>
+</body>
+</html>
